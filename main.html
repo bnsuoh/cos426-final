@@ -40,6 +40,17 @@
 				text-align: center;
 				cursor: pointer;
 			}
+            #crosshair {
+                position: absolute;
+                top: calc(50% - 20px);
+                width: 100%;
+                text-align: center;
+                font-size: 60px;
+                z-index: 100;
+                display: none;
+                color: rgb(2, 187, 110);
+				text-align: center;
+            }
 		</style>
 	</head>
 	<body>
@@ -52,12 +63,15 @@
 				<span style="font-size:40px">Click to play</span>
 				<br />
 				(W, A, S, D = Move, SPACE = Jump, MOUSE = Look around)
-			</div>
+            </div>
+        </div>
 
-		</div>
+        <div id="crosshair">+</div>
 
 		<script>
-			var camera, scene, renderer, controls, starField;
+            var camera, scene, renderer, controls, starField;
+            var width = window.innerWidth;
+            var height = window.innerHeight;
 			var objects = [];
 			var raycaster;
 			var moveForward = false;
@@ -69,7 +83,8 @@
 			var velocity = new THREE.Vector3();
 			var direction = new THREE.Vector3();
 			var vertex = new THREE.Vector3();
-			var color = new THREE.Color();
+            var color = new THREE.Color();
+            var cameraHUD, sceneHUD, hudBitmap;
 			init();
 			animate();
 			function init() {
@@ -96,18 +111,21 @@
                 /* End of star code ****/
 
 				controls = new THREE.PointerLockControls(camera);
-				var blocker = document.getElementById( 'blocker' );
+                var blocker = document.getElementById( 'blocker' );
+                var crosshair = document.getElementById( 'crosshair' );
 				var instructions = document.getElementById( 'instructions' );
 				instructions.addEventListener( 'click', function () {
 					controls.lock();
 				}, false );
 				controls.addEventListener( 'lock', function () {
 					instructions.style.display = 'none';
-					blocker.style.display = 'none';
+                    blocker.style.display = 'none';
+                    crosshair.style.display = 'block';
 				} );
 				controls.addEventListener( 'unlock', function () {
 					blocker.style.display = 'block';
-					instructions.style.display = '';
+                    instructions.style.display = '';
+                    crosshair.style.display = 'none';
 				} );
 				scene.add( controls.getObject() );
 				var onKeyDown = function ( event ) {
@@ -206,7 +224,7 @@
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				document.body.appendChild( renderer.domElement );
 				//
-				window.addEventListener( 'resize', onWindowResize, false );
+                window.addEventListener( 'resize', onWindowResize, false );
 			}
 			function onWindowResize() {
 				camera.aspect = window.innerWidth / window.innerHeight;
@@ -243,8 +261,8 @@
 						canJump = true;
 					}
 					prevTime = time;
-				}
-				renderer.render( scene, camera );
+                }
+                renderer.render( scene, camera );
 			}
 		</script>
 	</body>
