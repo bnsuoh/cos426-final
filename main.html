@@ -85,13 +85,16 @@
 			var vertex = new THREE.Vector3();
             var color = new THREE.Color();
             var cameraHUD, sceneHUD, hudBitmap;
+            var boxes = [];
+            var colors = [];
+            var boxMaterial, boxGeometry;
 			init();
 			animate();
 			function init() {
 				camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1000 );
 				scene = new THREE.Scene();
 				scene.background = new THREE.Color( 0x000 );
-				scene.fog = new THREE.Fog( 0xffffff, 0, 750 );
+				scene.fog = new THREE.Fog( 0xffffff, 0, 700);
 				var light = new THREE.HemisphereLight( 0xeeeeff, 0x777788, 0.75 );
 				light.position.set( 0.5, 1, 0.75 );
                 scene.add( light );
@@ -189,7 +192,6 @@
 				}
 				floorGeometry = floorGeometry.toNonIndexed(); // ensure each face has unique vertices
 				position = floorGeometry.attributes.position;
-				var colors = [];
 				for ( var i = 0, l = position.count; i < l; i ++ ) {
 					color.setHSL( Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
 					colors.push( color.r, color.g, color.b );
@@ -198,26 +200,13 @@
 				var floorMaterial = new THREE.MeshBasicMaterial( { vertexColors: THREE.VertexColors } );
 				var floor = new THREE.Mesh( floorGeometry, floorMaterial );
 				scene.add( floor );
-				// objects
-				var boxGeometry = new THREE.BoxBufferGeometry( 20, 20, 20 );
-				boxGeometry = boxGeometry.toNonIndexed(); // ensure each face has unique vertices
-				position = boxGeometry.attributes.position;
-				colors = [];
-				for ( var i = 0, l = position.count; i < l; i ++ ) {
-					color.setHSL( Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
-					colors.push( color.r, color.g, color.b );
-				}
-				boxGeometry.addAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
-				for ( var i = 0; i < 500; i ++ ) {
-					var boxMaterial = new THREE.MeshPhongMaterial( { specular: 0xffffff, flatShading: true, vertexColors: THREE.VertexColors } );
-					boxMaterial.color.setHSL( Math.random() * 0.2 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
-					var box = new THREE.Mesh( boxGeometry, boxMaterial );
-					box.position.x = Math.floor( Math.random() * 20 - 10 ) * 20;
-					box.position.y = Math.floor( Math.random() * 20 ) * 20 + 10;
-					box.position.z = Math.floor( Math.random() * 20 - 10 ) * 20;
-					scene.add( box );
-					objects.push( box );
-				}
+				boxGeometry = new THREE.BoxBufferGeometry( 20, 20, 20 );
+                boxGeometry = boxGeometry.toNonIndexed(); // ensure each face has unique vertices
+                colors = [];
+                for ( var i = 0, l = position.count; i < l; i ++ ) {
+                    color.setHSL( Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
+                    colors.push( color.r, color.g, color.b );
+                }
 				//
 				renderer = new THREE.WebGLRenderer( { antialias: true } );
 				renderer.setPixelRatio( window.devicePixelRatio );
@@ -230,8 +219,11 @@
 				camera.aspect = window.innerWidth / window.innerHeight;
 				camera.updateProjectionMatrix();
 				renderer.setSize( window.innerWidth, window.innerHeight );
-			}
+            }
+            
+            var time_int = 0;
 			function animate() {
+                time_int++;
 				requestAnimationFrame( animate );
 				if ( controls.isLocked === true ) {
 					raycaster.ray.origin.copy( controls.getObject().position );
@@ -251,7 +243,36 @@
 					if ( onObject === true ) {
 						velocity.y = Math.max( 0, velocity.y );
 						canJump = true;
-					}
+                    }
+                    // objects
+                    
+                    position = boxGeometry.attributes.position;
+                    console.log(time_int);
+                    if (time_int % 50 == 0) {
+                        boxGeometry.addAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
+                        boxMaterial = new THREE.MeshPhongMaterial( { specular: 0xffffff, flatShading: true, vertexColors: THREE.VertexColors } );
+                        boxMaterial.color.setHSL( Math.random() * 0.2 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
+                        var box = new THREE.Mesh( boxGeometry, boxMaterial );
+                        box.position.x = Math.floor( Math.random() * 20 - 10 ) * 20;
+                        box.position.y = Math.floor( Math.random() * 20 ) * 20 + 100;
+                        box.position.z = Math.floor( Math.random() * 20 - 10 ) * 20;
+                        scene.add( box );
+                        objects.push( box );
+                        boxes.push(box);
+                        time_int = 0;
+                    }
+                    for (i in boxes) {
+                        var box = boxes[i];
+                        if (box.position.y < 10) {
+                            scene.remove(box);
+                            boxes.splice(i, 1);
+                            objects.splice(i, 1);
+                        } else {
+                            box.position.y -= 0.5;
+                        }
+                        
+                    }
+
 					controls.getObject().translateX( velocity.x * delta );
 					controls.getObject().position.y += ( velocity.y * delta ); // new behavior
                     controls.getObject().translateZ( velocity.z * delta );
