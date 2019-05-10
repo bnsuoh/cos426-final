@@ -343,11 +343,6 @@
 					// Update bullets. Walk backwards through the list so we can remove items.
 					for (var i = bullets.length-1; i >= 0; i--) {
 						var b = bullets[i], p = b.position, d = b.ray.direction;
-						// if (checkWallCollision(p)) {
-						// 	bullets.splice(i, 1);
-						// 	scene.remove(b);
-						// 	continue;
-						// }
 						// Collide with AI
 						var hit = false;
 						for (var j = enemies.length-1; j >= 0; j--) {
@@ -360,33 +355,15 @@
 								bullets.splice(i, 1);
 								scene.remove(b);
 								scene.remove(a);
-								// var color = a.material.color, percent = a.health / 100;
-								// a.material.color.setRGB(
-										// percent * color.r,
-										// percent * color.g,
-										// percent * color.b
-								// );
 								hit = true;
 								break;
 							}
 						}
-						// // Bullet hits player
-						// if (distance(p.x, p.z, cam.position.x, cam.position.z) < 25 && b.owner != cam) {
-						// 	$('#hurt').fadeIn(75);
-						// 	health -= 10;
-						// 	if (health < 0) health = 0;
-						// 	val = health < 25 ? '<span style="color: darkRed">' + health + '</span>' : health;
-						// 	$('#health').html(val);
-						// 	bullets.splice(i, 1);
-						// 	scene.remove(b);
-						// 	$('#hurt').fadeOut(350);
-						// }
-						// if (!hit) {
+						if (!hit) {
 							b.translateX(speed * d.x);
 							b.translateY(speed * d.y);
-							//bullets[i].translateY(speed * bullets[i].direction.y);
 							b.translateZ(speed * d.z);
-						// }
+						}
 					}
 					
 					// move each enemy downwards. 
