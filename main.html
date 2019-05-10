@@ -70,6 +70,7 @@
 		<script src="js/controls/PointerLockControls.js"></script>
 		<script src="js/loaders/GLTFLoader.js"></script>
 		<script src="js/objects/Sky.js"></script>
+		<script src="js/loaders/DDSLoader.js"></script>
 
 		<div id="blocker">
 
@@ -108,7 +109,9 @@
 			var score = 0;
 			var boxMaterial, boxGeometry;
 			var loader;
+			var loader2;
 			var enemy_speed = 0.5;
+			var mouse = { x: 0, y: 0 };
 			init();
 			animate();
 
@@ -203,6 +206,8 @@
 
 				// mesh loader
 				loader = new THREE.GLTFLoader();
+				// texture loader
+				loader2 = new THREE.DDSLoader();
 
                 /**** Create stars. Used https://threejs.org/docs/#api/en/materials/PointsMaterial as reference */
                 var starsGeometry = new THREE.Geometry();
@@ -290,25 +295,15 @@
 				var floorGeometry = new THREE.PlaneBufferGeometry(2000, 2000, 100, 100 );
 				floorGeometry.rotateX( - Math.PI / 2 );
 
-				// floor vertex displacement
+
+				// Daniel code begin
+				var map2 = loader2.load( 'textures/disturb_dxt1_mip.dds' );
+				map2.anisotropy = 4;
+
+				var rock_material = new THREE.MeshBasicMaterial( { map: map2 } );
+				
 				var position = floorGeometry.attributes.position;
-				for ( var i = 0, l = position.count; i < l; i ++ ) {
-					vertex.fromBufferAttribute( position, i );
-					vertex.x += Math.random() * 20 - 10;
-					vertex.y += Math.random() * 2;
-					vertex.z += Math.random() * 20 - 10;
-					position.setXYZ( i, vertex.x, vertex.y, vertex.z );
-				}
-				floorGeometry = floorGeometry.toNonIndexed(); // ensure each face has unique vertices
-				position = floorGeometry.attributes.position;
-				for ( var i = 0, l = position.count; i < l; i ++ ) {
-					color.setHSL( Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
-					colors.push( color.r, color.g, color.b );
-				}
-				floorGeometry.addAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
-				var floorMaterial = new THREE.MeshBasicMaterial( { vertexColors: THREE.VertexColors } );
-				var floor = new THREE.Mesh( floorGeometry, floorMaterial );
-				floor.receiveShadow = true;
+				var floor = new THREE.Mesh( floorGeometry, rock_material );
 				scene.add( floor );
 				
                 colors = [];
@@ -324,9 +319,16 @@
 				renderer.shadowMap.enabled = true;
 				renderer.shadowMap.type = THREE.PCFShadowMap;
 				document.body.appendChild( renderer.domElement );
+				//
+				window.addEventListener( 'resize', onWindowResize, false );
 
-				// Window
-                window.addEventListener( 'resize', onWindowResize, false );
+				// Track mouse position (set mouse.x and mouse.y to pointer coordinates) so we know where to shoot
+				document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+					
+				// Shoot on click
+				window.addEventListener("click",function(e){
+					createBullet();
+				});
 			}
 			function onWindowResize() {
 				camera.aspect = window.innerWidth / window.innerHeight;
@@ -379,6 +381,7 @@
 					var onObject = intersections.length > 0;
 					var time = performance.now();
 					var delta = ( time - prevTime ) / 1000;
+					var speed = delta * 500;
 					velocity.x -= velocity.x * 10.0 * delta;
 					velocity.z -= velocity.z * 10.0 * delta;
 					velocity.y -= 9.8 * 100.0 * delta; // 100.0 = mass
@@ -391,7 +394,7 @@
 						velocity.y = Math.max( 0, velocity.y );
 						canJump = true;
 					}
-					
+
 					// generate enemies
 					// ufo model: https://sketchfab.com/3d-models/chibi-ufo-low-poly-26fc3ada37264aa482b02e3d38ed1ba6
                     if (time_int % 100 == 0) {
@@ -409,8 +412,56 @@
 						} );
 						time_int = 0;
 						enemy_speed += 0.02;
-						console.log("speed:" + enemy_speed);
-						console.log(enemies);
+						// console.log("speed:" + enemy_speed);
+					}
+
+					// Update bullets. Walk backwards through the list so we can remove items.
+					for (var i = bullets.length-1; i >= 0; i--) {
+						var b = bullets[i], p = b.position, d = b.ray.direction;
+						// if (checkWallCollision(p)) {
+						// 	bullets.splice(i, 1);
+						// 	scene.remove(b);
+						// 	continue;
+						// }
+						// Collide with AI
+						var hit = false;
+						for (var j = enemies.length-1; j >= 0; j--) {
+							var a = enemies[j];
+							var c = a.position;
+							if (p.x < c.x + 10 && p.x > c.x - 10 &&
+									p.z < c.z + 10 && p.z > c.z - 10 &&
+									p.y < c.y + 10 && p.y > c.y - 10 &&
+									b.owner != a) {
+								bullets.splice(i, 1);
+								scene.remove(b);
+								scene.remove(a);
+								// var color = a.material.color, percent = a.health / 100;
+								// a.material.color.setRGB(
+										// percent * color.r,
+										// percent * color.g,
+										// percent * color.b
+								// );
+								hit = true;
+								break;
+							}
+						}
+						// // Bullet hits player
+						// if (distance(p.x, p.z, cam.position.x, cam.position.z) < 25 && b.owner != cam) {
+						// 	$('#hurt').fadeIn(75);
+						// 	health -= 10;
+						// 	if (health < 0) health = 0;
+						// 	val = health < 25 ? '<span style="color: darkRed">' + health + '</span>' : health;
+						// 	$('#health').html(val);
+						// 	bullets.splice(i, 1);
+						// 	scene.remove(b);
+						// 	$('#hurt').fadeOut(350);
+						// }
+						// if (!hit) {
+							b.translateX(speed * d.x);
+							b.translateY(speed * d.y);
+							//bullets[i].translateY(speed * bullets[i].direction.y);
+							b.translateZ(speed * d.z);
+						// }
 					}
 					
 					// move each enemy downwards. 
@@ -460,6 +511,43 @@
                 }
                 renderer.render( scene, camera );
 			}
+			function onDocumentMouseMove(e) {
+				e.preventDefault();
+				mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+				mouse.y = - (e.clientY / window.innerHeight) * 2 + 1;
+			}//end dan met
+			var bullets = [];
+			var sphereMaterial = new THREE.MeshBasicMaterial({color: 0x333333});
+			var sphereGeo = new THREE.SphereGeometry(2, 6, 6);
+			function createBullet(obj) {
+				if (obj === undefined) {
+					obj = camera;
+				}
+				var sphere = new THREE.Mesh(sphereGeo, sphereMaterial);
+				sphere.position.set(obj.position.x, obj.position.y * 0.8, obj.position.z);
+
+				if (obj instanceof THREE.Camera) {
+					var vector = new THREE.Vector3(mouse.x, mouse.y, 1);
+					vector.unproject(obj);
+					sphere.ray = new THREE.Ray(
+							obj.position,
+							vector.sub(obj.position).normalize()
+					);
+				}
+				else {
+					var vector = cam.position.clone();
+					sphere.ray = new THREE.Ray(
+							obj.position,
+							vector.sub(obj.position).normalize()
+					);
+				}
+				sphere.owner = obj;
+				
+				bullets.push(sphere);
+				scene.add(sphere);
+				
+				return sphere;
+			}//end dan met
 		</script>
 	</body>
 </html>
