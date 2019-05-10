@@ -69,6 +69,7 @@
 		<script src="build/three.js"></script>
 		<script src="js/controls/PointerLockControls.js"></script>
 		<script src="js/loaders/GLTFLoader.js"></script>
+		<script src="js/objects/Sky.js"></script>
 
 		<div id="blocker">
 
@@ -111,23 +112,95 @@
 			init();
 			animate();
 
+			// Initialize Sky gradient
+			// Source: https://threejs.org/examples/webgl_shaders_sky.html
+			function initSky() {
+				// Add Sky
+				sky = new THREE.Sky();
+				sky.scale.setScalar( 450000 );
+				scene.add( sky );
+				// Add Sun Helper
+				sunSphere = new THREE.Mesh(
+					new THREE.SphereBufferGeometry( 20000, 16, 8 ),
+					new THREE.MeshBasicMaterial( { color: 0xffffff } )
+				);
+				sunSphere.position.y = - 700000;
+				sunSphere.visible = false;
+				scene.add( sunSphere );
+				/// GUI
+				var effectController  = {
+					turbidity: 10,
+					rayleigh: 2,
+					mieCoefficient: 0.005,
+					mieDirectionalG: 0.8,
+					luminance: 1,
+					inclination: 0.49, // elevation / inclination
+					azimuth: 0.25, // Facing front,
+					sun: ! true
+				};
+				var distance = 400000;
+				var uniforms = sky.material.uniforms;
+					uniforms[ "turbidity" ].value = effectController.turbidity;
+					uniforms[ "rayleigh" ].value = effectController.rayleigh;
+					uniforms[ "luminance" ].value = effectController.luminance;
+					uniforms[ "mieCoefficient" ].value = effectController.mieCoefficient;
+					uniforms[ "mieDirectionalG" ].value = effectController.mieDirectionalG;
+					var theta = Math.PI * ( effectController.inclination - 0.5 );
+					var phi = 2 * Math.PI * ( effectController.azimuth - 0.5 );
+					sunSphere.position.x = distance * Math.cos( phi );
+					sunSphere.position.y = distance * Math.sin( phi ) * Math.sin( theta );
+					sunSphere.position.z = distance * Math.sin( phi ) * Math.cos( theta );
+					sunSphere.visible = effectController.sun;
+					uniforms[ "sunPosition" ].value.copy( sunSphere.position );
+				function guiChanged() {
+					var uniforms = sky.material.uniforms;
+					uniforms[ "turbidity" ].value = effectController.turbidity;
+					uniforms[ "rayleigh" ].value = effectController.rayleigh;
+					uniforms[ "luminance" ].value = effectController.luminance;
+					uniforms[ "mieCoefficient" ].value = effectController.mieCoefficient;
+					uniforms[ "mieDirectionalG" ].value = effectController.mieDirectionalG;
+					var theta = Math.PI * ( effectController.inclination - 0.5 );
+					var phi = 2 * Math.PI * ( effectController.azimuth - 0.5 );
+					sunSphere.position.x = distance * Math.cos( phi );
+					sunSphere.position.y = distance * Math.sin( phi ) * Math.sin( theta );
+					sunSphere.position.z = distance * Math.sin( phi ) * Math.cos( theta );
+					sunSphere.visible = effectController.sun;
+					uniforms[ "sunPosition" ].value.copy( sunSphere.position );
+					//renderer.render( scene, camera );
+				}
+			}
+
 			function init() {
+				// Camera
 				camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1000 );
+
+				// Scene
 				scene = new THREE.Scene();
-				scene.background = new THREE.Color( 0x000 );
+				scene.background = new THREE.Color(0xc7e9eb);
 				scene.fog = new THREE.Fog( 0xffffff, 1000, 1200);
-				var light = new THREE.HemisphereLight( 0xeeeeff, 0x777788, 0.75 );
-				light.position.set( 0.5, 1, 0.75 );
-				//scene.add( light );
-				var directionalLight = new THREE.DirectionalLight( 0xFFFFFF, 1 );
+
+				// Lights
+				// var light = new THREE.HemisphereLight( 0xeeeeff, 0x777788, 0.75 );
+				// light.position.set( 0.5, 1, 0.75 );
+				// scene.add( light );
+				var light = new THREE.AmbientLight(0xffffff, 0.75);
+				scene.add(light);
+				var directionalLight = new THREE.DirectionalLight( 0xffff00, 1 );
 				directionalLight.position.set( 100, 350, 250 );
 				directionalLight.castShadow = true;
 				scene.add( directionalLight );
-				hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 0.6 );
-				hemiLight.color.setHSL( 0.6, 1, 0.6 );
-				hemiLight.groundColor.setHSL( 0.095, 1, 0.75 );
+				directionalLight.castShadow = true;
+				directionalLight.shadow = new THREE.LightShadow( new THREE.PerspectiveCamera( 50, 1, 10, 2500 ) );
+				directionalLight.shadow.bias = 0.0001;
+				directionalLight.shadow.mapSize.width = 2048;
+				directionalLight.shadow.mapSize.height = 1024;
+				hemiLight = new THREE.HemisphereLight( 0xf4df42, 0x4374c1, 0.6 );
+				// hemiLight.color.setHSL( 0.6, 1, 0.6 );
+				// hemiLight.groundColor.setHSL( 0.095, 1, 0.75 );
 				hemiLight.position.set( 0, 50, 0 );
 				scene.add( hemiLight );
+				initSky();
+
 				// mesh loader
 				loader = new THREE.GLTFLoader();
 
@@ -145,6 +218,7 @@
                 scene.add(starField);
                 /* End of star code ****/
 
+				// Controls
 				controls = new THREE.PointerLockControls(camera);
                 var blocker = document.getElementById( 'blocker' );
                 var hud = document.getElementById( 'hud' );
@@ -211,10 +285,12 @@
 				document.addEventListener( 'keydown', onKeyDown, false );
 				document.addEventListener( 'keyup', onKeyUp, false );
 				raycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, - 1, 0 ), 0, 10 );
+
 				// floor
-				var floorGeometry = new THREE.PlaneBufferGeometry( 2000, 2000, 100, 100 );
+				var floorGeometry = new THREE.PlaneBufferGeometry(2000, 2000, 100, 100 );
 				floorGeometry.rotateX( - Math.PI / 2 );
-				// vertex displacement
+
+				// floor vertex displacement
 				var position = floorGeometry.attributes.position;
 				for ( var i = 0, l = position.count; i < l; i ++ ) {
 					vertex.fromBufferAttribute( position, i );
@@ -232,6 +308,7 @@
 				floorGeometry.addAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
 				var floorMaterial = new THREE.MeshBasicMaterial( { vertexColors: THREE.VertexColors } );
 				var floor = new THREE.Mesh( floorGeometry, floorMaterial );
+				floor.receiveShadow = true;
 				scene.add( floor );
 				
                 colors = [];
@@ -239,12 +316,16 @@
                     color.setHSL( Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
                     colors.push( color.r, color.g, color.b );
                 }
-				//
+				// Renderer
 				renderer = new THREE.WebGLRenderer( { antialias: true } );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.autoClear = false;
+				renderer.shadowMap.enabled = true;
+				renderer.shadowMap.type = THREE.PCFShadowMap;
 				document.body.appendChild( renderer.domElement );
-				//
+
+				// Window
                 window.addEventListener( 'resize', onWindowResize, false );
 			}
 			function onWindowResize() {
@@ -312,12 +393,12 @@
 					}
 					
 					// generate enemies
-					// ufo model: https://sketchfab.com/3d-models/chibi-ufo-low-poly-26fc3ada37264aa482b02e3d38ed1ba6#download
-                    if (time_int % 50 == 0) {
+					// ufo model: https://sketchfab.com/3d-models/chibi-ufo-low-poly-26fc3ada37264aa482b02e3d38ed1ba6
+                    if (time_int % 100 == 0) {
 						loader.load('models/gltf/cute_ufo/scene.gltf', function ( gltf ) {
-							var pos_x = Math.floor( Math.random() * 10 - 10 ) * 20;
-                        	var pos_y = Math.floor( Math.random() * 10) + 200;
-                        	var pos_z = Math.floor( Math.random() * 10 - 10 ) * 20;
+							var pos_x = camera.position.x + Math.floor( Math.random() * 10 - 5 ) * 20;
+                        	var pos_y = camera.position.y + Math.floor( Math.random() * 10) + 200;
+                        	var pos_z = camera.position.z + Math.floor( Math.random() * 10 - 5) * 20;
 							gltf.scene.position.set(pos_x, pos_y, pos_z);
 							gltf.scene.scale.set(0.1,0.1,0.1);
 							scene.add( gltf.scene );
@@ -329,6 +410,7 @@
 						time_int = 0;
 						enemy_speed += 0.02;
 						console.log("speed:" + enemy_speed);
+						console.log(enemies);
 					}
 					
 					// move each enemy downwards. 
