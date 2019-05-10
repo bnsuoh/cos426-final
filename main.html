@@ -115,6 +115,36 @@
 			init();
 			animate();
 
+			function dumpObject(obj, lines = [], isLast = true, prefix = '') {
+				const localPrefix = isLast ? '└─' : '├─';
+				lines.push(`${prefix}${prefix ? localPrefix : ''}${obj.name || '*no-name*'} [${obj.type}]`);
+				const newPrefix = prefix + (isLast ? '  ' : '│ ');
+				const lastNdx = obj.children.length - 1;
+				obj.children.forEach((child, ndx) => {
+					const isLast = ndx === lastNdx;
+					dumpObject(child, lines, isLast, newPrefix);
+				});
+				return lines;
+			}
+
+			function initTrees() {
+				for (var i = 0; i < 100; i++) {
+					loader.load('models/gltf/trees2/scene.gltf', function ( gltf ) {
+					var root = gltf.scene;
+					var plusOrMinus = Math.random() < 0.5 ? -1 : 1;
+					var pos_x = plusOrMinus * 100 + camera.position.x + Math.floor( Math.random() * 100 - 50 ) * 20;
+					plusOrMinus = Math.random() < 0.5 ? -1 : 1;
+					var pos_z = plusOrMinus * 100 + camera.position.z + Math.floor( Math.random() * 100 - 50) * 20;
+					scene.add(root);
+					root.position.set(pos_x, 0, pos_z);
+					root.scale.set(5,5,5);
+					}, undefined, function ( error ) {
+						console.error( error );
+					} );
+					
+				}
+			}
+
 			// Initialize Sky gradient
 			// Source: https://threejs.org/examples/webgl_shaders_sky.html
 			function initSky() {
@@ -198,16 +228,18 @@
 				directionalLight.shadow.mapSize.width = 2048;
 				directionalLight.shadow.mapSize.height = 1024;
 				hemiLight = new THREE.HemisphereLight( 0xf4df42, 0x4374c1, 0.6 );
-				// hemiLight.color.setHSL( 0.6, 1, 0.6 );
-				// hemiLight.groundColor.setHSL( 0.095, 1, 0.75 );
+				hemiLight.color.setHSL( 0.6, 1, 0.6 );
+				hemiLight.groundColor.setHSL( 0.095, 1, 0.75 );
 				hemiLight.position.set( 0, 50, 0 );
 				scene.add( hemiLight );
-				initSky();
 
 				// mesh loader
 				loader = new THREE.GLTFLoader();
 				// texture loader
 				loader2 = new THREE.DDSLoader();
+
+				initSky();
+				initTrees();
 
                 /**** Create stars. Used https://threejs.org/docs/#api/en/materials/PointsMaterial as reference */
                 var starsGeometry = new THREE.Geometry();
@@ -297,20 +329,33 @@
 
 
 				// Daniel code begin
-				var map2 = loader2.load( 'textures/disturb_dxt1_mip.dds' );
-				map2.anisotropy = 4;
+				// var map2 = new THREE.TextureLoader().load( 'textures/grass1.jpg' );
+				// map2.anisotropy = 4;
 
-				var rock_material = new THREE.MeshBasicMaterial( { map: map2 } );
+				// var rock_material = new THREE.MeshBasicMaterial( { map: map2 } );
 				
-				var position = floorGeometry.attributes.position;
-				var floor = new THREE.Mesh( floorGeometry, rock_material );
+				// var position = floorGeometry.attributes.position;
+				// var floor = new THREE.Mesh( floorGeometry, rock_material );
+				// scene.add( floor );
+				var position = floorGeometry.attributes.position
+				for ( var i = 0, l = position.count; i < l; i ++ ) {
+					vertex.fromBufferAttribute( position, i );	
+					vertex.x += Math.random() * 20 - 10;	
+					vertex.y += Math.random() * 2;	
+					vertex.z += Math.random() * 20 - 10;	
+					position.setXYZ( i, vertex.x, vertex.y, vertex.z );	
+				}	
+				floorGeometry = floorGeometry.toNonIndexed(); // ensure each face has unique vertices	
+				position = floorGeometry.attributes.position;	
+				for ( var i = 0, l = position.count; i < l; i ++ ) {	
+					color.setHSL( Math.random() * 0.1 + 0.25, 0.5, Math.random() * 0.25 + 0.25);	
+					colors.push( color.r, color.g, color.b );	
+				}	
+				floorGeometry.addAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );	
+				var floorMaterial = new THREE.MeshBasicMaterial( { vertexColors: THREE.VertexColors } );	
+				var floor = new THREE.Mesh( floorGeometry, floorMaterial );	
 				scene.add( floor );
-				
-                colors = [];
-                for ( var i = 0, l = position.count; i < l; i ++ ) {
-                    color.setHSL( Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
-                    colors.push( color.r, color.g, color.b );
-                }
+
 				// Renderer
 				renderer = new THREE.WebGLRenderer( { antialias: true } );
 				renderer.setPixelRatio( window.devicePixelRatio );
