@@ -331,7 +331,6 @@
 				// Daniel code begin
 				// var map2 = new THREE.TextureLoader().load( 'textures/grass1.jpg' );
 				// map2.anisotropy = 4;
-
 				// var rock_material = new THREE.MeshBasicMaterial( { map: map2 } );
 				
 				// var position = floorGeometry.attributes.position;
@@ -548,14 +547,16 @@
 				mouse.y = - (e.clientY / window.innerHeight) * 2 + 1;
 			}//end dan met
 			var bullets = [];
-			var sphereMaterial = new THREE.MeshBasicMaterial({color: 0x333333});
-			var sphereGeo = new THREE.SphereGeometry(2, 6, 6);
 			function createBullet(obj) {
 				if (obj === undefined) {
 					obj = camera;
 				}
-				var sphere = new THREE.Mesh(sphereGeo, sphereMaterial);
-				sphere.position.set(obj.position.x, obj.position.y, obj.position.z);
+
+				// https://stackoverflow.com/questions/50965025/three-js-shooting-bullet
+				var sphere = new THREE.Mesh(
+                                        new THREE.SphereGeometry(1,8,8),
+                                        new THREE.MeshBasicMaterial({color:0xf2ae02})
+                                        );
 
 				if (obj instanceof THREE.Camera) {
 					var vector = new THREE.Vector3(camera.x, camera.y, 1);
@@ -573,10 +574,8 @@
 					);
 				}
 				sphere.owner = obj;
-				
 				bullets.push(sphere);
 				scene.add(sphere);
-				
 				return sphere;
 			}//end dan met
 		</script>
