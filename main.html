@@ -131,13 +131,18 @@
 				for (var i = 0; i < 100; i++) {
 					loader.load('models/gltf/trees2/scene.gltf', function ( gltf ) {
 					var root = gltf.scene;
+					gltf.scene.traverse( function( node ) {
+						if ( node instanceof THREE.Mesh ) { 
+							node.castShadow = true;
+        					node.receiveShadow = true; }
+					} );
 					var plusOrMinus = Math.random() < 0.5 ? -1 : 1;
-					var pos_x = plusOrMinus * 100 + camera.position.x + Math.floor( Math.random() * 100 - 50 ) * 20;
+					var pos_x = plusOrMinus * 100 + Math.floor( Math.random() * 100 - 50 ) * 20;
 					plusOrMinus = Math.random() < 0.5 ? -1 : 1;
-					var pos_z = plusOrMinus * 100 + camera.position.z + Math.floor( Math.random() * 100 - 50) * 20;
+					var pos_z = plusOrMinus * 100 +  Math.floor( Math.random() * 100 - 50) * 20;
 					scene.add(root);
 					root.position.set(pos_x, 0, pos_z);
-					root.scale.set(5,5,5);
+					root.scale.set(7,7,7);
 					}, undefined, function ( error ) {
 						console.error( error );
 					} );
@@ -210,7 +215,7 @@
 				// Scene
 				scene = new THREE.Scene();
 				scene.background = new THREE.Color(0xc7e9eb);
-				scene.fog = new THREE.Fog( 0xffffff, 1000, 1200);
+				scene.fog = new THREE.Fog( 0x3f473b, 200, 1200);
 
 				// Lights
 				// var light = new THREE.HemisphereLight( 0xeeeeff, 0x777788, 0.75 );
@@ -218,20 +223,25 @@
 				// scene.add( light );
 				var light = new THREE.AmbientLight(0xffffff, 0.75);
 				scene.add(light);
-				var directionalLight = new THREE.DirectionalLight( 0xffff00, 1 );
-				directionalLight.position.set( 100, 350, 250 );
-				directionalLight.castShadow = true;
-				scene.add( directionalLight );
-				directionalLight.castShadow = true;
-				directionalLight.shadow = new THREE.LightShadow( new THREE.PerspectiveCamera( 50, 1, 10, 2500 ) );
-				directionalLight.shadow.bias = 0.0001;
-				directionalLight.shadow.mapSize.width = 2048;
-				directionalLight.shadow.mapSize.height = 1024;
+				var directionalLight1 = new THREE.DirectionalLight( 0xffff00, 1 );
+				directionalLight1.position.set( 100, 350, 250 );
+				directionalLight1.castShadow = true;
+				scene.add( directionalLight1 );
+
+				directionalLight1.castShadow = true;
+				directionalLight1.shadow = new THREE.LightShadow( new THREE.PerspectiveCamera( 50, 1, 10, 2500 ) );
+				directionalLight1.shadow.bias = 0.0001;
+				directionalLight1.shadow.mapSize.width = 2048;
+				directionalLight1.shadow.mapSize.height = 1024;
+				//var helper1 = new THREE.DirectionalLightHelper(directionalLight1, 5 );
+				//scene.add(helper1);
 				hemiLight = new THREE.HemisphereLight( 0xf4df42, 0x4374c1, 0.6 );
 				hemiLight.color.setHSL( 0.6, 1, 0.6 );
-				hemiLight.groundColor.setHSL( 0.095, 1, 0.75 );
-				hemiLight.position.set( 0, 50, 0 );
-				scene.add( hemiLight );
+				hemiLight.groundColor.setHSL(0.095, 1, 0.75 );
+				hemiLight.position.set(0, 50, -100);
+				//var helper = new THREE.HemisphereLightHelper(hemiLight, 5 );
+				//scene.add(helper);
+				//scene.add( hemiLight );
 
 				// mesh loader
 				loader = new THREE.GLTFLoader();
@@ -353,6 +363,7 @@
 				floorGeometry.addAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );	
 				var floorMaterial = new THREE.MeshBasicMaterial( { vertexColors: THREE.VertexColors } );	
 				var floor = new THREE.Mesh( floorGeometry, floorMaterial );	
+				floor.receiveShadow = true;
 				scene.add( floor );
 
 				// Renderer
@@ -462,8 +473,8 @@
 
 					// Update bullets. Walk backwards through the list so we can remove items.
 					for (var i = bullets.length-1; i >= 0; i--) {
-						var b = bullets[i], p = b.position, d = b.ray.direction;
-						// Collide with AI
+						var b = bullets[i];
+						var p = b.position;
 						var hit = false;
 						for (var j = enemies.length-1; j >= 0; j--) {
 							var enemy = enemies[j];
@@ -488,9 +499,7 @@
 							}
 						}
 						if (!hit) {
-							b.translateX(speed * d.x);
-							b.translateY(speed * d.y);
-							b.translateZ(speed * d.z);
+							b.translateZ(-speed);
 						}
 					}
 					
@@ -547,33 +556,35 @@
 				mouse.y = - (e.clientY / window.innerHeight) * 2 + 1;
 			}//end dan met
 			var bullets = [];
-			function createBullet(obj) {
-				if (obj === undefined) {
-					obj = camera;
-				}
-
+			// var sphereMaterial = new THREE.MeshBasicMaterial({color: 0x333333});	
+			// var sphereGeo = new THREE.SphereGeometry(2, 6, 6);
+			function createBullet() {
+				
 				// https://stackoverflow.com/questions/50965025/three-js-shooting-bullet
 				var sphere = new THREE.Mesh(
-                                        new THREE.SphereGeometry(1,8,8),
-                                        new THREE.MeshBasicMaterial({color:0xf2ae02})
-                                        );
+					new THREE.SphereGeometry(1,8,8),
+					new THREE.MeshBasicMaterial({color:0xf2ae02})
+				);
 
-				if (obj instanceof THREE.Camera) {
-					var vector = new THREE.Vector3(camera.x, camera.y, 1);
-					vector.unproject(obj);
-					sphere.ray = new THREE.Ray(
-							obj.position,
-							vector.sub(obj.position).normalize()
-					);
-				}
-				else {
-					var vector = cam.position.clone();
-					sphere.ray = new THREE.Ray(
-							obj.position,
-							vector.sub(obj.position).normalize()
-					);
-				}
-				sphere.owner = obj;
+				sphere.position.copy(camera.getWorldPosition()); // start position - the tip of the weapon
+				sphere.position.y -= 10;
+  				sphere.quaternion.copy(camera.quaternion);
+
+				// if (obj instanceof THREE.Camera) {
+				// 	console.log(obj.position);
+				// 	var vector = new THREE.Vector3(camera.position.x, camera.position.y, 1);
+				// 	sphere.ray = new THREE.Ray(obj.position, vector.sub(obj.position).normalize());
+				// 	console.log(sphere.ray);
+				// }
+				// else {
+					
+				// 	var vector = camera.position.clone();
+				// 	sphere.ray = new THREE.Ray(
+				// 			obj.position,
+				// 			vector.sub(obj.position).normalize()
+				// 	);
+				// }
+				sphere.owner = camera;
 				bullets.push(sphere);
 				scene.add(sphere);
 				return sphere;
