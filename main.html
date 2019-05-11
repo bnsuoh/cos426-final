@@ -71,6 +71,11 @@
 		<script src="js/loaders/GLTFLoader.js"></script>
 		<script src="js/objects/Sky.js"></script>
 		<script src="js/loaders/DDSLoader.js"></script>
+		<script src='bower_components/threex.geometricglow/threex.dilategeometry.js'></script>
+		<script src='bower_components/threex.geometricglow/threex.atmospherematerial.js'></script>
+		<script src="bower_components/threex.geometricglow/threex.geometricglowmesh.js"></script>
+		<!-- include for threex.atmospherematerialdatgui -->
+		<script src="bower_components/threex.geometricglow/threex.atmospherematerialdatgui.js"></script>
 
 		<div id="blocker">
 
@@ -134,7 +139,7 @@
 					gltf.scene.traverse( function( node ) {
 						if ( node instanceof THREE.Mesh ) { 
 							node.castShadow = true;
-        					node.receiveShadow = true; }
+							node.receiveShadow = true; }
 					} );
 					var plusOrMinus = Math.random() < 0.5 ? -1 : 1;
 					var pos_x = plusOrMinus * (Math.floor(Math.random() * 100 - 50 ) * 20);
@@ -249,7 +254,7 @@
                 for ( var i = 0; i < 10000; i ++ ) {
                     var star = new THREE.Vector3();
                     star.x = THREE.Math.randFloatSpread(2000);
-                    star.y = THREE.Math.randFloatSpread(2000);
+                    star.y = 200 + THREE.Math.randFloatSpread(100);
                     star.z = THREE.Math.randFloatSpread(2000);
                     starsGeometry.vertices.push(star);
                 }
@@ -391,13 +396,22 @@
 				var sphereGeom3 =  new THREE.SphereGeometry(20, 32, 16 );
 				var sphereGeom4 =  new THREE.SphereGeometry(30, 32, 16 );
 				var whiteMaterial = new THREE.MeshBasicMaterial( { color: 0xffffff, transparent: true, opacity: 0.4 } );
-				var yellowMaterial = new THREE.MeshBasicMaterial( { color: 0xffff00, transparent: true, opacity: 0.3 } );
+				var yellowMaterial = new THREE.MeshBasicMaterial( { color: 0xffff00, transparent: true, opacity: 0.35 } );
 				var orangeMaterial = new THREE.MeshBasicMaterial( { color: 0xffa500, transparent: true, opacity: 0.2 } );
 				var redMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000, transparent: true, opacity: 0.15 } );
+				
 				var sphere1 = new THREE.Mesh( sphereGeom1.clone(), whiteMaterial );
 				var sphere2 = new THREE.Mesh( sphereGeom2.clone(), yellowMaterial );
 				var sphere3 = new THREE.Mesh( sphereGeom3.clone(), orangeMaterial );
 				var sphere4 = new THREE.Mesh( sphereGeom4.clone(), redMaterial );
+				var glowMesh4 = new THREEx.GeometricGlowMesh(sphere4);
+				var insideUniforms	= glowMesh4.insideMesh.material.uniforms
+				insideUniforms.glowColor.value.set(0x892323);
+				sphere4.add(glowMesh4.object3d);
+				// var glowMesh = new THREEx.GeometricGlowMesh(sphere4);
+				// var insideUniforms	= glowMesh4.insideMesh.material.uniforms
+				// insideUniforms.glowColor.value.set('red');
+				// sphere4.add(glowMesh4.object3d);
 				var y_pos = position.y <= 10? 0 : position.y
 				sphere1.position.set(position.x, y_pos, position.z);
 				sphere2.position.set(position.x, y_pos, position.z);
@@ -554,14 +568,40 @@
 			function createBullet() {
 				
 				// https://stackoverflow.com/questions/50965025/three-js-shooting-bullet
-				var sphere = new THREE.Mesh(
-					new THREE.SphereGeometry(1,8,8),
-					new THREE.MeshBasicMaterial({color:0xf2ae02})
-				);
+				// var sphere = new THREE.Mesh(
+				// 	new THREE.SphereGeometry(1,8,8),
+				// 	new THREE.MeshBasicMaterial({color:0xf2ae02})
+				// );
+
+				
+				
+				//var geometry	= new THREE.TorusKnotGeometry(1-0.25, 0.25, 32*3, 32);
+				// var geometry	= new THREE.TorusGeometry(1-0.25, 0.25);
+				var geometry	= new THREE.SphereGeometry(1, 32, 16);
+				// var geometry	= new THREE.CubeGeometry(1,1,1, 10, 10, 10);
+
+				var material	= new THREE.MeshBasicMaterial({
+					color	: new THREE.Color('gray')
+				})
+
+				var sphere	= new THREE.Mesh( geometry, material );
+				sphere.position = new THREE.Vector3(0,100,0);
+				// mesh.visible	= false
+				scene.add(sphere);
+					
+				//////////////////////////////////////////////////////////////////////////////////
+				//		create the glowMesh						//
+				//////////////////////////////////////////////////////////////////////////////////
+
+				// create a glowMesh
+				var glowMesh	= new THREEx.GeometricGlowMesh(sphere);
+				sphere.add(glowMesh.object3d);
 
 				sphere.position.copy(camera.getWorldPosition()); // start position - the tip of the weapon
 				sphere.position.y -= 10;
-  				sphere.quaternion.copy(camera.quaternion);
+				sphere.quaternion.copy(camera.quaternion);
+				
+				
 
 				// if (obj instanceof THREE.Camera) {
 				// 	console.log(obj.position);
@@ -579,7 +619,6 @@
 				// }
 				sphere.owner = camera;
 				bullets.push(sphere);
-				scene.add(sphere);
 				return sphere;
 			}//end dan met
 		</script>
