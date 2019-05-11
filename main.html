@@ -142,7 +142,6 @@
 					var pos_z = plusOrMinus * (Math.floor(Math.random() * 100 - 50) * 20);
 					scene.add(root);
 					root.position.set(pos_x, 0, pos_z);
-					console.log(root.position);
 					root.scale.set(7,7,7);
 					}, undefined, function ( error ) {
 						console.error( error );
@@ -235,8 +234,6 @@
 
 				hemiLight = new THREE.HemisphereLight(0xffffbb, 0x080820, 1);
 				hemiLight.position.set(0, 20, -1000);
-				var helper = new THREE.DirectionalLightHelper(directionalLight1, 5);
-				scene.add(helper);
 				scene.add(hemiLight);
 
 				// mesh loader
