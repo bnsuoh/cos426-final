@@ -20,8 +20,28 @@
 				width: 100%;
 				height: 100%;
 				background-color: rgba(0,0,0,0.5);
+				cursor: pointer;
 			}
 			#instructions {
+				width: 100%;
+				height: 100%;
+				display: -webkit-box;
+				display: -moz-box;
+				display: box;
+				-webkit-box-orient: horizontal;
+				-moz-box-orient: horizontal;
+				box-orient: horizontal;
+				-webkit-box-pack: center;
+				-moz-box-pack: center;
+				box-pack: center;
+				-webkit-box-align: center;
+				-moz-box-align: center;
+				box-align: center;
+				color: #fff;
+				text-align: center;
+				cursor: pointer;
+			}
+			#gameover-div {
 				width: 100%;
 				height: 100%;
 				display: -webkit-box;
@@ -88,12 +108,21 @@
 		<script src="bower_components/threex.geometricglow/threex.atmospherematerialdatgui.js"></script>
 
 		<div id="blocker">
-
 			<div id="instructions">
 				<span style="font-size:40px">Click to play</span>
-				<br />
+				<br>
+				<span style="font-size:20px">Shoot the UFOs before they reach the ground.</span>
+				<br>
 				(W, A, S, D = Move, SPACE = Jump, MOUSE = Look around)
-            </div>
+				<br>
+			</div>
+			<div id="gameover-div">
+				<span style="font-size:40px">Game Over</span>
+				<br>
+				<span id="gameover-score" style="font-size:20px">Score: </span>
+				<br>
+				Click to play again
+			</div>
 		</div>
 		<div id="hud">
 			<div id="lives">Lives:</div>
@@ -127,19 +156,31 @@
 			var loader2;
 			var enemy_speed = 0.5;
 			var mouse = { x: 0, y: 0 };
+			var gameOver = false;
 			init();
 			animate();
 
-			function dumpObject(obj, lines = [], isLast = true, prefix = '') {
-				const localPrefix = isLast ? '└─' : '├─';
-				lines.push(`${prefix}${prefix ? localPrefix : ''}${obj.name || '*no-name*'} [${obj.type}]`);
-				const newPrefix = prefix + (isLast ? '  ' : '│ ');
-				const lastNdx = obj.children.length - 1;
-				obj.children.forEach((child, ndx) => {
-					const isLast = ndx === lastNdx;
-					dumpObject(child, lines, isLast, newPrefix);
-				});
-				return lines;
+			function initVariables() {
+				enemy_speed = 0.5;
+				lives = 5;
+				score = 0;
+				for (i in explosions) {
+					var e = explosions[i];
+					scene.remove(e.layers[0]);
+					scene.remove(e.layers[1]);
+					scene.remove(e.layers[2]);
+					scene.remove(e.layers[3]);
+					e.layers = [];
+				}
+				for (i in enemies) {
+					var e = enemies[i];
+					scene.remove(e);
+				}
+				document.getElementById('lives').innerHTML = "Lives: " + lives;
+				document.getElementById('score').innerHTML = "Score: " + score;
+				explosions = [];
+				enemies = [];
+				objects = [];
 			}
 
 			function initTrees() {
@@ -275,23 +316,36 @@
 
 				// Controls
 				controls = new THREE.PointerLockControls(camera);
-                var blocker = document.getElementById( 'blocker' );
-                var hud = document.getElementById( 'hud' );
-				var instructions = document.getElementById( 'instructions' );
+                var blocker = document.getElementById('blocker');
+                var hud = document.getElementById('hud');
+				var instructions = document.getElementById('instructions');
+				var gameover = document.getElementById('gameover-div');
 				document.getElementById('lives').innerHTML = "Lives: " + lives;
 				document.getElementById('score').innerHTML = "Score: " + score;
-				instructions.addEventListener( 'click', function () {
+				blocker.addEventListener( 'click', function () {
 					controls.lock();
 				}, false );
 				controls.addEventListener( 'lock', function () {
 					instructions.style.display = 'none';
-                    blocker.style.display = 'none';
-                    hud.style.display = 'block';
+					blocker.style.display = 'none';
+					hud.style.display = 'block';
+					if (gameOver) {
+						gameOver = false;
+						initVariables();
+					}
 				} );
 				controls.addEventListener( 'unlock', function () {
 					blocker.style.display = 'block';
-                    instructions.style.display = '';
-                    hud.style.display = 'none';
+					hud.style.display = 'none';
+					if (gameOver) {
+						document.getElementById('gameover-score').innerHTML = "Score: " + score;
+						instructions.style.display = 'none';
+						gameover.style.display = '';
+					}
+					else {
+						gameover.style.display = 'none';
+                    	instructions.style.display = '';
+					}
 				} );
 				scene.add( controls.getObject() );
 				var onKeyDown = function ( event ) {
@@ -346,15 +400,7 @@
 				var floorGeometry = new THREE.PlaneBufferGeometry(2000, 2000, 100, 100 );
 				floorGeometry.rotateX( - Math.PI / 2 );
 
-
 				// Daniel code begin
-				// var map2 = new THREE.TextureLoader().load( 'textures/grass1.jpg' );
-				// map2.anisotropy = 4;
-				// var rock_material = new THREE.MeshBasicMaterial( { map: map2 } );
-				
-				// var position = floorGeometry.attributes.position;
-				// var floor = new THREE.Mesh( floorGeometry, rock_material );
-				// scene.add( floor );
 				var position = floorGeometry.attributes.position
 				for ( var i = 0, l = position.count; i < l; i ++ ) {
 					vertex.fromBufferAttribute( position, i );	
@@ -448,7 +494,7 @@
 			function animate() {
                 time_int++;
 				requestAnimationFrame( animate );
-				if ( controls.isLocked === true ) {
+				if ( controls.isLocked === true && !gameOver) {
 					raycaster.ray.origin.copy( controls.getObject().position );
 					raycaster.ray.origin.y -= 10;
 					var intersections = raycaster.intersectObjects( objects );
@@ -478,7 +524,7 @@
                         	var pos_z = camera.position.z + Math.floor( Math.random() * 20 - 10) * 20;
 							gltf.scene.position.set(pos_x, pos_y, pos_z);
 							gltf.scene.scale.set(0.1,0.1,0.1);
-							scene.add( gltf.scene );
+							scene.add(gltf.scene);
 							objects.push(gltf.scene);
                         	enemies.push(gltf.scene);
 						}, undefined, function ( error ) {
@@ -508,12 +554,6 @@
 								scene.remove(enemy);
 								score += 1;
 								document.getElementById('score').innerHTML = "Score: " + score;
-								// var color = a.material.color, percent = a.health / 100;
-								// a.material.color.setRGB(
-										// percent * color.r,
-										// percent * color.g,
-										// percent * color.b
-								// );
 								hit = true;
 								break;
 							}
@@ -534,11 +574,19 @@
                             objects.splice(i, 1);
 							lives--;
 							document.getElementById('lives').innerHTML = "Lives: " + lives;
-							
                         } else {
                             enemy.position.y -= enemy_speed;
                         }
                         
+					}
+
+					// Game over
+					if (lives == 0) {
+						gameOver = true;
+						document.exitPointerLock = document.exitPointerLock    ||
+						document.mozExitPointerLock;
+						document.exitPointerLock();
+						return;
 					}
 					
 					// change sizes of explosions over time
@@ -581,25 +629,17 @@
 			function createBullet() {
 				
 				// https://stackoverflow.com/questions/50965025/three-js-shooting-bullet
-				// var sphere = new THREE.Mesh(
-				// 	new THREE.SphereGeometry(1,8,8),
-				// 	new THREE.MeshBasicMaterial({color:0xf2ae02})
-				// );
 
-				
-				
-				//var geometry	= new THREE.TorusKnotGeometry(1-0.25, 0.25, 32*3, 32);
-				// var geometry	= new THREE.TorusGeometry(1-0.25, 0.25);
+				if (gameOver) {
+					return;
+				}
+
 				var geometry	= new THREE.SphereGeometry(1, 32, 16);
-				// var geometry	= new THREE.CubeGeometry(1,1,1, 10, 10, 10);
-
 				var material	= new THREE.MeshBasicMaterial({
 					color	: new THREE.Color('gray')
 				})
-
 				var sphere	= new THREE.Mesh( geometry, material );
 				sphere.position = new THREE.Vector3(0,100,0);
-				// mesh.visible	= false
 				scene.add(sphere);
 					
 				//////////////////////////////////////////////////////////////////////////////////
@@ -613,23 +653,6 @@
 				sphere.position.copy(camera.getWorldPosition()); // start position - the tip of the weapon
 				sphere.position.y -= 10;
 				sphere.quaternion.copy(camera.quaternion);
-				
-				
-
-				// if (obj instanceof THREE.Camera) {
-				// 	console.log(obj.position);
-				// 	var vector = new THREE.Vector3(camera.position.x, camera.position.y, 1);
-				// 	sphere.ray = new THREE.Ray(obj.position, vector.sub(obj.position).normalize());
-				// 	console.log(sphere.ray);
-				// }
-				// else {
-					
-				// 	var vector = camera.position.clone();
-				// 	sphere.ray = new THREE.Ray(
-				// 			obj.position,
-				// 			vector.sub(obj.position).normalize()
-				// 	);
-				// }
 				sphere.owner = camera;
 				bullets.push(sphere);
 				return sphere;
