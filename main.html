@@ -135,7 +135,7 @@
 				<br>
 				<span style="font-size:20px">Shoot the UFOs before they reach the ground.</span>
 				<br>
-				(W, A, S, D = Move, SPACE = Jump, MOUSE = Look around)
+				(W, A, S, D = Move, SPACE = Jump, MOUSE = Look around, MOUSE CLICK = Shoot)
 				<br>
 			</div>
 			<div id="gameover-div">
@@ -176,7 +176,7 @@
 			var boxMaterial, boxGeometry;
 			var loader;
 			var loader2;
-			var enemy_speed = 0.5;
+			var enemy_speed = 0.7;
 			var mouse = { x: 0, y: 0 };
 			var gameOver = false;
 			init();
@@ -545,7 +545,7 @@
 
 					// generate enemies
 					// ufo model: https://sketchfab.com/3d-models/chibi-ufo-low-poly-26fc3ada37264aa482b02e3d38ed1ba6
-                    if (time_int % 100 == 0) {
+                    if (time_int % 50 == 0) {
 						loader.load('models/gltf/cute_ufo/scene.gltf', function ( gltf ) {
 							var pos_x = camera.position.x + Math.floor( Math.random() * 20 - 10) * 20;
                         	var pos_y = camera.position.y + Math.floor( Math.random() * 10) + 200;
