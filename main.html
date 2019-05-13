@@ -176,14 +176,14 @@
 			var boxMaterial, boxGeometry;
 			var loader;
 			var loader2;
-			var enemy_speed = 0.7;
+			var enemy_speed = 0.6;
 			var mouse = { x: 0, y: 0 };
 			var gameOver = false;
 			init();
 			animate();
 
 			function initVariables() {
-				enemy_speed = 0.5;
+				enemy_speed = 0.6;
 				lives = 5;
 				score = 0;
 				for (i in explosions) {
@@ -559,7 +559,7 @@
 							console.error( error );
 						} );
 						time_int = 0;
-						enemy_speed += 0.04;
+						enemy_speed += 0.02;
 						// console.log("speed:" + enemy_speed);
 					}
 
