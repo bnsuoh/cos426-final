@@ -123,7 +123,6 @@
 		<script src="js/controls/PointerLockControls.js"></script>
 		<script src="js/loaders/GLTFLoader.js"></script>
 		<script src="js/objects/Sky.js"></script>
-		<script src="js/loaders/DDSLoader.js"></script>
 		<script src='bower_components/threex.geometricglow/threex.dilategeometry.js'></script>
 		<script src='bower_components/threex.geometricglow/threex.atmospherematerial.js'></script>
 		<script src="bower_components/threex.geometricglow/threex.geometricglowmesh.js"></script>
@@ -188,6 +187,7 @@
 			init();
 			animate();
 
+			// initialize beginning variables
 			function initVariables() {
 				enemy_speed = 0.6;
 				lives = 5;
@@ -211,6 +211,8 @@
 				objects = [];
 			}
 
+			// initialize trees
+			// tree model: https://sketchfab.com/reymarch
 			function initTrees() {
 				for (var i = 0; i < 100; i++) {
 					loader.load('models/gltf/trees2/scene.gltf', function ( gltf ) {
@@ -292,6 +294,8 @@
 				}
 			}
 
+			// initialize game
+			// controls source: https://threejs.org/examples/?q=pointer#misc_controls_pointerlock
 			function init() {
 				// Camera
 				camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1000 );
@@ -322,8 +326,6 @@
 
 				// mesh loader
 				loader = new THREE.GLTFLoader();
-				// texture loader
-				loader2 = new THREE.DDSLoader();
 
 				initSky();
 				initTrees();
@@ -675,15 +677,10 @@
 				var sphere	= new THREE.Mesh( geometry, material );
 				sphere.position = new THREE.Vector3(0,100,0);
 				scene.add(sphere);
-					
-				//////////////////////////////////////////////////////////////////////////////////
-				//		create the glowMesh						//
-				//////////////////////////////////////////////////////////////////////////////////
-
+				
 				// create a glowMesh
 				var glowMesh	= new THREEx.GeometricGlowMesh(sphere);
 				sphere.add(glowMesh.object3d);
-
 				sphere.position.copy(camera.getWorldPosition()); // start position - the tip of the weapon
 				sphere.position.y -= 10;
 				sphere.quaternion.copy(camera.quaternion);
